@@ -1,0 +1,76 @@
+name: Cherry-pick Branch
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  cherry-pick-init:
+    name: Cherry-pick start
+    if: (contains(github.event.comment.body, '/cherrypick') || contains(github.event.comment.body, '/cherry-pick'))
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.set-branch.outputs.branch }}
+    steps:
+      - name: Test
+        run: |
+          echo "My number is ${{ fromJSON('1234')}}"
+
+      - name: Set env for branch name
+        id: set-branch
+        run: |
+          body="${{ github.event.comment.body }}"
+          stringarray=($body)
+          echo "branch=${stringarray[1]}" >> $GITHUB_OUTPUT
+
+      - name: Message start
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'A cherry pick from this PR targeting ${{ env.branch }} was triggered.',
+            });
+
+  run-bump-automation:
+    if: (contains(github.event.comment.body, '/cherrypick') || contains(github.event.comment.body, '/cherry-pick'))
+    needs: cherry-pick-init
+    uses: alexdudescu/gh-bump-workflow/.github/workflows/reusable-bump-package.yml@main
+    with:
+      package-name: axios
+      version: latest
+      branch: ${{ needs.cherry-pick-init.outputs.branch }}
+      directory: ./
+      isDevDependency: false
+
+  comment-status:
+    if: (always() && (contains(github.event.comment.body, '/cherrypick') || contains(github.event.comment.body, '/cherry-pick')))
+    needs: run-bump-automation
+    runs-on: ubuntu-latest
+    name: Cherry-pick status
+    steps:
+      - name: Message success
+        if: ${{ contains(join(needs.*.result, ','), 'success') }}
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🟢 Cherry-pick succeeded.',
+            });
+
+      - name: Message failure
+        if: ${{ !contains(join(needs.*.result, ','), 'success') }}
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⛔️ Cherry-pick failed. Please check [GitHub Actions run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for errors.',
+            });

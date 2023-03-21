@@ -1,0 +1,33 @@
+name: Bump npm package version (root)
+
+on:
+  workflow_dispatch:
+    inputs:
+      package-name:
+        description: "Name of the NPM package to bump"
+        required: true
+        type: string
+      version:
+        description: "Version to bump to (defaults to latest)"
+        default: "latest"
+        required: true
+        type: string
+      branch:
+        description: "Base branch name (defaults to main)"
+        default: "main"
+        required: true
+        type: string
+      isDevDependency:
+        description: "Specify if package is a dev dependency"
+        type: boolean
+        default: false
+        required: true
+
+jobs:
+  bump_version:
+    uses: alexdudescu/gh-bump-workflow/.github/workflows/bump-package.yml@master
+    with:
+      package-name: ${{ github.event.inputs.package-name }}
+      version: ${{ github.event.inputs.version }}
+      branch: ${{ github.event.inputs.branch }}
+      isDevDependency: ${{ github.event.inputs.isDevDependency }}
