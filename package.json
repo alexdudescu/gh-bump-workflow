@@ -20,6 +20,6 @@
     "@uipath/angular": "^14.1.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.2"
+    "typescript": "^4.1.6"
   }
 }
