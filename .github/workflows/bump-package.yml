@@ -1,0 +1,115 @@
+name: Bump Package Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      package-name:
+        description: "Name of the NPM package to bump"
+        required: true
+        type: string
+      version:
+        description: "Version to bump to (defaults to latest)"
+        default: "latest"
+        required: true
+        type: string
+      branch:
+        description: "Base branch name (defaults to main)"
+        default: "main"
+        required: true
+        type: string
+      directory:
+        description: "Path to package.json directory"
+        default: "./"
+        required: true
+        type: string
+      isDevDependency:
+        description: "Specify if package is a dev dependency"
+        type: boolean
+        default: false
+        required: true
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js and NPM
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16.x"
+
+      - name: Replace special characters in package name
+        uses: bluwy/substitute-string-action@v1
+        id: replaceinname
+        with:
+          _input-text: ${{ github.event.inputs.package-name}}
+          "@": ""
+          "/": "-"
+          ".": "-"
+
+      - name: Replace special characters in version
+        uses: bluwy/substitute-string-action@v1
+        id: replaceinversion
+        with:
+          _input-text: ${{ github.event.inputs.version }}
+          .: "-"
+
+      - name: Create a new branch
+        run: |
+          BRANCH_NAME=chore/bump-${{ steps.replaceinname.outputs.result }}-to-${{steps.replaceinversion.outputs.result}}
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git checkout -b $BRANCH_NAME
+          git fetch origin
+          git reset --hard origin/${{ github.event.inputs.branch }}
+
+      - name: Install Dependencies
+        working-directory: ${{ github.event.inputs.directory }}
+        run: npm ci
+
+      - name: Bump regular dependency
+        if: ${{ github.event.inputs.isDevDependency == 'false' }}
+        working-directory: ${{ github.event.inputs.directory }}
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          PACKAGE_NAME=${{ github.event.inputs.package-name }}
+          npm install "$PACKAGE_NAME@$VERSION"
+          echo "Bumped $PACKAGE_NAME to version $VERSION"
+
+      - name: Bump dev dependency
+        if: ${{ github.event.inputs.isDevDependency == 'true' }}
+        working-directory: ${{ github.event.inputs.directory }}
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          PACKAGE_NAME=${{ github.event.inputs.package-name }}
+          npm install -D "$PACKAGE_NAME@$VERSION"
+          echo "Bumped $PACKAGE_NAME to version $VERSION"
+
+      - name: Commit & Push Version Bump
+        run: |
+          PACKAGE_NAME=${{ github.event.inputs.package-name }}
+          VERSION=${{ github.event.inputs.version }}
+          COMMIT_MESSAGE="chore: bump $PACKAGE_NAME to $VERSION"
+          BRANCH_NAME=chore/bump-${{ steps.replaceinname.outputs.result }}-to-${{steps.replaceinversion.outputs.result}}
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "$COMMIT_MESSAGE" --no-verify --all
+          git push --force --set-upstream origin $BRANCH_NAME
+
+      - uses: repo-sync/pull-request@v2
+        name: pull-request
+        env:
+          PACKAGE_NAME: ${{ github.event.inputs.package-name }}
+          VERSION: ${{ github.event.inputs.version }}
+          BRANCH_NAME: chore/bump-${{ steps.replaceinname.outputs.result }}-to-${{steps.replaceinversion.outputs.result}}
+        with:
+          source_branch: ${{ env.BRANCH_NAME }}
+          destination_branch: ${{ github.event.inputs.branch }}
+          pr_title: Chore/bump ${{ env.PACKAGE_NAME }} to ${{ env.VERSION }}
+          pr_body: |
+            Automatically bump ${{ env.PACKAGE_NAME }} to ${{ env.VERSION}}<br>
+            Automation was ran by @${{ github.actor }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
