@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/alexdudescu/gh-bump-workflow#readme",
   "dependencies": {
-    "@uipath/angular": "^14.1.0"
+    "@uipath/angular": "^14.1.0",
+    "typescript": "^5.0.2"
   }
 }
