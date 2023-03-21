@@ -1,0 +1,25 @@
+{
+  "name": "gh-bump-workflow",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexdudescu/gh-bump-workflow.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alexdudescu/gh-bump-workflow/issues"
+  },
+  "homepage": "https://github.com/alexdudescu/gh-bump-workflow#readme",
+  "dependencies": {
+    "@uipath/angular": "^14.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}
