@@ -1,0 +1,5 @@
+{
+    "name": "Bump Package Version",
+    "description": "Starter workflow to bump npm dependencies",
+    "iconName": "package"
+}
